@@ -6,8 +6,15 @@ lint:
 test:
 	# noop
 
+./ansible/.venv:
+	python -m venv ./ansible/.venv
+
 ./mixtapestudy:
 	git clone git@github.com:douglasryanadams/mixtapestudy.git
+
+.PHONY: init
+init: ./ansible/.venv ./mixtapestudy
+	./ansible/.venv/bin/python -m pip install ansible
 
 .PHONY: validate
 validate: ./mixtapestudy
@@ -17,3 +24,8 @@ validate: ./mixtapestudy
 	cd mixtapestudy && git checkout main \
 		&& git pull origin main \
 		&& make check
+
+.PHONY: healthcheck
+healthcheck:
+	./ansible/.venv/bin/ansible mixtapehosts -m ping -i .priv/inventory.ini
+

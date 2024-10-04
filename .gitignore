@@ -1,2 +1,4 @@
 .env
 /mixtapestudy/
+.priv/
+*/.venv/
