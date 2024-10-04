@@ -1,0 +1,74 @@
+---
+- name: Set up Mixtape Study Environment
+  hosts: mixtapehosts
+  become: true
+  # TODO: run nginx, app, and alembic as non-root user
+  tasks:
+    - name: Ping to make sure they're out there
+      ansible.builtin.ping:
+    - name: Install all the packages we'll need
+      ansible.builtin.dnf:
+        name:
+          - nginx
+          - python3.11
+          - python3.11-pip
+          - postgresql15
+        state: present
+    - name: Copy Nginx configs
+      ansible.builtin.copy:
+        src: "{{ item.src }}"
+        dest: "{{ item.dest }}"
+        owner: nginx
+        group: nginx
+        mode: '0544'
+      with_items:
+        - src: ../mixtapestudy/nginx/nginx.conf
+          dest: /etc/nginx/nginx.conf
+        - src: ../mixtapestudy/nginx/default.conf
+          dest: /etc/nginx/default.d/default.conf
+      register: nginx_config
+      notify: Restart Nginx
+    # TODO Replace with real python packaging
+    - name: Drop directory for App
+      ansible.builtin.file:
+        path: /opt/mixtapestudy
+        state: absent
+    - name: Create directory for App
+      ansible.builtin.file:
+        path: /opt/mixtapestudy
+        state: directory
+        owner: nginx
+        group: nginx
+        mode: '0544'
+    - name: Copy Flask files
+      ansible.builtin.copy:
+        src: ../mixtapestudy/mixtapestudy/
+        dest: /opt/mixtapestudy/
+        owner: nginx
+        group: nginx
+        mode: '0544'
+    - name: Create directory for setup files
+      ansible.builtin.file:
+        path: /opt/misc
+        state: directory
+        owner: ec2-user
+        group: ec2-user
+        mode: '0544'
+    - name: Copy requirements.txt
+      ansible.builtin.copy:
+        src: ../mixtapestudy/requirements.txt
+        dest: /opt/misc/requirements.txt
+        owner: ec2-user
+        group: ec2-user
+        mode: '0544'
+    - name: Install requirements from requirements.txt
+      ansible.builtin.pip:
+        requirements: /opt/misc/requirements.txt
+        executable: /usr/bin/pip3.11
+
+
+  handlers:
+    - name: Restart Nginx
+      ansible.builtin.service:
+        name: nginx
+        state: restarted
