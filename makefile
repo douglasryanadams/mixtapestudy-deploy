@@ -1,8 +1,7 @@
 .PHONY: lint
 lint:
 	./ansible/.venv/bin/yamllint ./ansible/playbook.yaml --strict
-	# Using the venv to avoid warning from ansible-lint
-	source ./ansible/.venv/bin/activate && ansible-lint ./ansible/playbook.yaml --strict
+	@# Ansible lint was more trouble than it was worth, may revisit in the future
 
 .PHONY: test
 test:
@@ -17,6 +16,7 @@ test:
 .PHONY: init
 init: ./ansible/.venv ./mixtapestudy
 	./ansible/.venv/bin/python -m pip install ansible yamllint ansible-lint
+	./ansible/.venv/bin/ansible-galaxy collection install community.docker
 
 .PHONY: validate
 validate: ./mixtapestudy
@@ -36,5 +36,21 @@ healthcheck:
 	./ansible/.venv/bin/ansible mixtapehosts -m ping -i .priv/inventory.ini
 
 .PHONY: push
-push: lint
-	./ansible/.venv/bin/ansible-playbook -i .priv/inventory.ini ./ansible/playbook.yaml
+push:
+
+
+.priv/vault:
+	@echo "Vault file requires: ecr_domain and ecr_password"
+	mkdir -p .priv
+	./ansible/.venv/bin/ansible-vault create .priv/vault
+
+.PHONY: config
+config: lint .priv/vault
+	./ansible/.venv/bin/ansible-playbook \
+		--ask-vault-password \
+		--inventory .priv/inventory.ini \
+		./ansible/playbook.yaml
+
+.PHONY: vault
+vault: .priv/vault
+	./ansible/.venv/bin/ansible-vault edit .priv/vault

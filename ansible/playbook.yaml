@@ -1,74 +1,85 @@
 ---
 - name: Set up Mixtape Study Environment
-  hosts: mixtapehosts
+  hosts: all
   become: true
-  # TODO: run nginx, app, and alembic as non-root user
+  vars_files:
+    # This path needs to be relative to the playbook, not the command
+    - ../.priv/vault
   tasks:
     - name: Ping to make sure they're out there
       ansible.builtin.ping:
+
     - name: Install all the packages we'll need
       ansible.builtin.dnf:
         name:
-          - nginx
+          - docker
           - python3.11
-          - python3.11-pip
-          - postgresql15
         state: present
-    - name: Copy Nginx configs
-      ansible.builtin.copy:
-        src: "{{ item.src }}"
-        dest: "{{ item.dest }}"
-        owner: nginx
-        group: nginx
-        mode: '0544'
-      with_items:
-        - src: ../mixtapestudy/nginx/nginx.conf
-          dest: /etc/nginx/nginx.conf
-        - src: ../mixtapestudy/nginx/default.conf
-          dest: /etc/nginx/default.d/default.conf
-      register: nginx_config
-      notify: Restart Nginx
-    # TODO Replace with real python packaging
-    - name: Drop directory for App
-      ansible.builtin.file:
-        path: /opt/mixtapestudy
-        state: absent
-    - name: Create directory for App
-      ansible.builtin.file:
-        path: /opt/mixtapestudy
-        state: directory
-        owner: nginx
-        group: nginx
-        mode: '0544'
-    - name: Copy Flask files
-      ansible.builtin.copy:
-        src: ../mixtapestudy/mixtapestudy/
-        dest: /opt/mixtapestudy/
-        owner: nginx
-        group: nginx
-        mode: '0544'
-    - name: Create directory for setup files
-      ansible.builtin.file:
-        path: /opt/misc
-        state: directory
-        owner: ec2-user
-        group: ec2-user
-        mode: '0544'
-    - name: Copy requirements.txt
-      ansible.builtin.copy:
-        src: ../mixtapestudy/requirements.txt
-        dest: /opt/misc/requirements.txt
-        owner: ec2-user
-        group: ec2-user
-        mode: '0544'
-    - name: Install requirements from requirements.txt
+
+    - name: Install Python Docker modules
       ansible.builtin.pip:
-        requirements: /opt/misc/requirements.txt
+        name:
+          - wheel
+          - docker
         executable: /usr/bin/pip3.11
 
+    # Amazon Linux 2023 doesn't package docker-compose
+    - name: Download docker-compose
+      ansible.builtin.uri:
+        # yamllint disable-line rule:line-length
+        url: https://github.com/docker/compose/releases/latest/download/docker-compose-linux-aarch64
+        follow_redirects: all
+        dest: /usr/bin/docker-compose
+        mode: '0755'
+        creates: /usr/bin/docker-compose
 
-  handlers:
-    - name: Restart Nginx
-      ansible.builtin.service:
-        name: nginx
-        state: restarted
+    - name: Create directory for docker plugins
+      ansible.builtin.file:
+        path: /usr/local/lib/docker/cli-plugins
+        state: directory
+        mode: '0755'
+
+    - name: Symlink docker-compose until docker plugin directory
+      ansible.builtin.file:
+        src: /usr/bin/docker-compose
+        dest: /usr/local/lib/docker/cli-plugins/docker-compose
+        state: link
+
+    - name: Ensure Docker's running
+      ansible.builtin.systemd_service:
+        state: started
+        name: docker
+
+    - name: Create user
+      ansible.builtin.user:
+        name: mixtapestudy
+        groups: mixtapestudy, docker
+        create_home: true
+        home: /opt/mixtapestudy
+
+    - name: Copy docker-compose
+      ansible.builtin.copy:
+        src: ../docker-compose.yml
+        dest: /opt/mixtapestudy/docker-compose.yml
+        owner: mixtapestudy
+        group: mixtapestudy
+        mode: '0400'
+
+    # This could be done with ansible vault in the future of necessary
+    - name: Copy .env file (Must exist locally in './.priv/.env')
+      ansible.builtin.copy:
+        src: ../.priv/.env
+        dest: /opt/mixtapestudy/.env
+        owner: mixtapestudy
+        group: mixtapestudy
+        mode: '0400'
+
+    - name: Log in to AWS's ECR
+      community.docker.docker_login:
+        registry_url: "{{ ecr_domain }}"
+        username: AWS
+        password: "{{ ecr_password }}"
+
+    - name: Ensure the stack is running
+      community.docker.docker_compose_v2:
+        project_src: /opt/mixtapestudy
