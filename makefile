@@ -1,3 +1,7 @@
+.PHONY: clean
+clean:
+	rm -rf mixtapestudy
+
 .PHONY: lint
 lint:
 	./ansible/.venv/bin/yamllint ./ansible/playbook.yaml --strict
@@ -17,6 +21,7 @@ test:
 init: ./ansible/.venv ./mixtapestudy
 	./ansible/.venv/bin/python -m pip install ansible yamllint ansible-lint
 	./ansible/.venv/bin/ansible-galaxy collection install community.docker
+	./ansible/.venv/bin/ansible-galaxy collection install ansible.posix
 
 .PHONY: validate
 validate: ./mixtapestudy
@@ -35,17 +40,30 @@ healthcheck:
 	# TODO: Write healthcheck playbook
 	./ansible/.venv/bin/ansible mixtapehosts -m ping -i .priv/inventory.ini
 
-.PHONY: push
-push:
-
+#.PHONY: push
+#push: env_check validate
+#	aws ecr get-login-password --region "${AWS_REGION}" \
+#		| docker login --username AWS --password-stdin "${DOCKER_DOMAIN}"
+#	docker build \
+#		--tag "${DOCKER_DOMAIN}/mixtapestudy/nginx:${MIXTAPE_VERSION}" \
+#		--tag "${DOCKER_DOMAIN}/mixtapestudy/nginx:latest" \
+#		mixtapestudy/nginx
+#	docker build \
+#		--tag "${DOCKER_DOMAIN}/mixtapestudy/mixtapestudy:${MIXTAPE_VERSION}" \
+#		--tag "${DOCKER_DOMAIN}/mixtapestudy/mixtapestudy:latest" \
+#		mixtapestudy
+#	docker push "${DOCKER_DOMAIN}/mixtapestudy/nginx:${MIXTAPE_VERSION}"
+#	docker push "${DOCKER_DOMAIN}/mixtapestudy/nginx:latest"
+#	docker push "${DOCKER_DOMAIN}/mixtapestudy/mixtapestudy:${MIXTAPE_VERSION}"
+#	docker push "${DOCKER_DOMAIN}/mixtapestudy/mixtapestudy:latest"
 
 .priv/vault:
 	@echo "Vault file requires: ecr_domain and ecr_password"
 	mkdir -p .priv
 	./ansible/.venv/bin/ansible-vault create .priv/vault
 
-.PHONY: config
-config: lint .priv/vault
+.PHONY: push
+push: lint .priv/vault
 	./ansible/.venv/bin/ansible-playbook \
 		--ask-vault-password \
 		--inventory .priv/inventory.ini \

@@ -5,6 +5,8 @@
   vars_files:
     # This path needs to be relative to the playbook, not the command
     - ../.priv/vault
+  vars:
+    mixtape_version: 1.0.1
   tasks:
     - name: Ping to make sure they're out there
       ansible.builtin.ping:
@@ -74,11 +76,50 @@
         group: mixtapestudy
         mode: '0400'
 
+    - name: Clear build directory (just in case)
+      ansible.builtin.file:
+        path: /opt/mixtapestudy/build
+        state: absent
+
+    - name: Copy latest code to server
+      ansible.posix.synchronize:
+        src: ../mixtapestudy
+        dest: /opt/mixtapestudy/build
+
     - name: Log in to AWS's ECR
       community.docker.docker_login:
-        registry_url: "{{ ecr_domain }}"
+        registry_url: "{{ docker_domain }}"
         username: AWS
-        password: "{{ ecr_password }}"
+        password: "{{ docker_password }}"
+
+    - name: Build and push Nginx Docker image
+      community.docker.docker_image:
+        build:
+          path: /opt/mixtapestudy/build/mixtapestudy/nginx
+        name: "{{ docker_domain }}/mixtapestudy/nginx"
+        tag: "{{ mixtape_version }}"
+        push: true
+        source: build
+
+    - name: Build and push Mixtapestudy Docker image
+      community.docker.docker_image:
+        build:
+          path: /opt/mixtapestudy/build/mixtapestudy
+        name: "{{ docker_domain }}/mixtapestudy/mixtapestudy"
+        tag: "{{ mixtape_version }}"
+        push: true
+        source: build
+
+    - name: Add latest tags to both docker images
+      community.docker.docker_image:
+        name: "{{docker_domain}}/mixtapestudy/{{ item }}:{{ mixtape_version }}"
+        repository: "{{ docker_domain }}/mixtapestudy/{{ item }}:latest"
+        force_tag: true
+        push: true
+        source: local
+      with_items:
+        - nginx
+        - mixtapestudy
 
     - name: Ensure the stack is running
       community.docker.docker_compose_v2:

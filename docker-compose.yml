@@ -1,6 +1,6 @@
 services:
   nginx-proxy:
-    image: "${DOCKER_DOMAIN}/mixtapestudy/nginx"
+    image: "${DOCKER_DOMAIN}/mixtapestudy/nginx:latest"
     environment:
       - FLASK_SERVER_ADDR=mixtapestudy:8000
     ports:
@@ -13,7 +13,7 @@ services:
       timeout: 10s
       retries: 3
   alembic:
-    build: .
+    image: "${DOCKER_DOMAIN}/mixtapestudy/mixtapestudy:latest"
     command: ["alembic", "upgrade", "head"]
     environment:
       DATABASE_URL: "${DATABASE_URL}"
@@ -25,7 +25,7 @@ services:
       alembic:
         condition: service_completed_successfully
   mixtapestudy:
-    build: .
+    image: "${DOCKER_DOMAIN}/mixtapestudy/mixtapestudy:latest"
     ports:
       - "8000:8000"
     environment:
