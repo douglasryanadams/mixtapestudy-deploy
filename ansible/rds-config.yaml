@@ -39,3 +39,13 @@
         login_host: "{{ database_domain }}"
         login_user: "{{ database_admin_username }}"
         login_password: "{{ database_admin_password }}"
+
+    - name: Give user access to all tables in mixtapestudy db
+      postgresql_privs:
+        db: "mixtapestudy"
+        role: "{{ database_user_username }}"
+        objs: ALL_IN_SCHEMA
+        privs: SELECT,INSERT,UPDATE,DELETE
+        login_host: "{{ database_domain }}"
+        login_user: "{{ database_admin_username }}"
+        login_password: "{{ database_admin_password }}"
