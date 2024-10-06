@@ -1,0 +1,41 @@
+---
+# This is more a document for worst-case scenarios
+# than something to run regularly
+- name: Set up Mixtape Study RDS Instance
+  # This must run from an EC2 instance with network access to the database
+  hosts: mixtapehosts
+  become: true
+  vars_files:
+    - ../.priv/vault
+  tasks:
+    - name: Ping to make sure they're out there
+      ansible.builtin.ping:
+
+    - name: Install all the packages we'll need
+      ansible.builtin.dnf:
+        name:
+          - python3.11
+          - python3.11-pip
+        state: present
+
+    - name: Install Python PostgreSQL Driver
+      ansible.builtin.pip:
+        name:
+          - psycopg2-binary
+        executable: /usr/bin/pip3.11
+
+    - name: Create application database
+      community.postgresql.postgresql_db:
+        name: mixtapestudy
+        login_host: "{{ database_domain }}"
+        login_user: "{{ database_admin_username }}"
+        login_password: "{{ database_admin_password }}"
+
+    - name: Set non-admin user for the app
+      community.postgresql.postgresql_user:
+        db: mixtapestudy
+        name: "{{ database_user_username }}"
+        password: "{{ database_user_password }}"
+        login_host: "{{ database_domain }}"
+        login_user: "{{ database_admin_username }}"
+        login_password: "{{ database_admin_password }}"

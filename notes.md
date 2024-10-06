@@ -9,28 +9,39 @@ https://us-west-2.console.aws.amazon.com/rds/home?region=us-west-2#
 ```text
 >Click: Create Database
 Creation method: Standard create
-Configuration: Aurora (PostreSQL Compatible)
-Version: Aurora PostrgreSQL (Compatible with PostgreSQL 15.4) - default for 15
+Configuration: PostgreSQL
+Engine Version: PostgreSQL 16.3-R2
 Template: Dev/Test
-DB Cluster identifier: mixtapestudy-1
+Availability and durability: Single DB Instance
+DB instance identifier: mixtapestudy-1
 Master username: ***
 Credentials management: Managed in AWS Secrets Manager
 Select the encryption key: aws/secretsmanager
-Cluster storage configuration: Aurora Standard
-Instance configuration: Serverless v2
-    Minimum capacity (ACUs)
-    Maximum capcity (ACUs)
+Storage type: gp2
+Allocated storage: 20GB ($2.30)
+Enable storage autoscaling: True
+Maximum storage threshold: 60 GiB ($7)
+Compute resource: Connect to an EC2 compute resource
+    - Sets up security group policies I think
+EC2 Instance: Selected the one created below
+DB subnet group: Automatic setup
+Public access: No
+VPC security group: Create new
+New VPC security group name: mixtapestudy-1
+Certificate authority: (default)
+Database authentication: Password authentication
+Turn on Preformance insights: false
 ```
 
 | Instance                  | On Demand / HR | On Demand / Month | Res 1 Year / Month | Res 3 Year / Month |
 | ------------------------- | -------------- | ----------------- | ------------------ | ------------------ |
-| Postgres db.t4g.micro     | 0.016          | $12               |  $8                | $6                 |
+| **Postgres db.t4g.micro** | 0.016          | $12               |  $8                | **$6** <-- This    |
 | Postgres db.t4g.small     | 0.032          | $24               |  $16               | $12                |
 
 
 # AWS EC2
 
-Originally, I considered Fargate ECS but given the regular calls to collect listening activity, the instances would be running constantly and the savings on idle time would be minimal.
+Originally, I considered Fargate ECS but given the regular calls to collect listening activity, the instances would be running constantly and the savings on idle time would be minimal. So, instead, I'm going to run a docker-compose stack on an EC2 instance so that it's as similar as possible to my preferred dev environment. Of course this has scaling limitations but it's cost effective and it means that if/when I move to Fargate that path will be a little easier.
 
 ```text
 >Click: Create instance

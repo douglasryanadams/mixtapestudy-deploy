@@ -1,6 +1,6 @@
 ---
-- name: Set up Mixtape Study Environment
-  hosts: all
+- name: Set up Mixtape Study VM
+  hosts: mixtapehosts
   become: true
   vars_files:
     # This path needs to be relative to the playbook, not the command
@@ -16,6 +16,7 @@
         name:
           - docker
           - python3.11
+          - python3.11-pip
         state: present
 
     - name: Install Python Docker modules
@@ -55,7 +56,7 @@
     - name: Create user
       ansible.builtin.user:
         name: mixtapestudy
-        groups: mixtapestudy, docker
+        groups: docker
         create_home: true
         home: /opt/mixtapestudy
 
@@ -100,6 +101,8 @@
         tag: "{{ mixtape_version }}"
         push: true
         source: build
+      notify:
+        - Stop docker stack
 
     - name: Build and push Mixtapestudy Docker image
       community.docker.docker_image:
@@ -109,6 +112,8 @@
         tag: "{{ mixtape_version }}"
         push: true
         source: build
+      notify:
+        - Stop docker stack
 
     - name: Add latest tags to both docker images
       community.docker.docker_image:
@@ -121,6 +126,20 @@
         - nginx
         - mixtapestudy
 
-    - name: Ensure the stack is running
+    - name: Start docker
+      debug:
+        msg: 'Just calls the start_docker stack handler'
+      changed_when: true
+      notify:
+        - Start docker stack
+
+  handlers:
+    - name: Stop docker stack
+      community.docker.docker_compose_v2:
+        project_src: /opt/mixtapestudy
+        state: down
+      notify:
+        - Start docker stack
+    - name: Start docker stack
       community.docker.docker_compose_v2:
         project_src: /opt/mixtapestudy

@@ -16,7 +16,7 @@ services:
     image: "${DOCKER_DOMAIN}/mixtapestudy/mixtapestudy:latest"
     command: ["alembic", "upgrade", "head"]
     environment:
-      DATABASE_URL: "${DATABASE_URL}"
+      DATABASE_URL: "${ADMIN_DATABASE_URL}"
   migration_done:
     # Dummy image for commands to be sure migration is complete
     image: alpine
@@ -29,7 +29,7 @@ services:
     ports:
       - "8000:8000"
     environment:
-      OAUTH_REDIRECT_BASE_URL: "https://mixtapestudy.com"
+      OAUTH_REDIRECT_BASE_URL: "https://beta.mixtapestudy.com"
       # Set these in a .env file
       SPOTIFY_CLIENT_SECRET: "${SPOTIFY_CLIENT_SECRET}"
       SPOTIFY_CLIENT_ID: "${SPOTIFY_CLIENT_ID}"
