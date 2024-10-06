@@ -65,4 +65,58 @@ Configure storage: 1x8 GiB gp3
 
 # ALB
 
+## Target Group
 
+```text
+>Click: Target Groups (from EC2 Dashboard)
+>Click: Create target group (upper right)
+Choose a target type: Instances
+Target group name: mixtapestudy-1
+Protocol - Port: HTTP - 80
+IP address type: IPv4
+VPC: Default
+Protocol version: HTTP1
+Health check protocol: HTTP
+Health check path: /flask-health-check
+
+>Under Register Targets
+>Selected the only EC2 instance I have (the one set up above)
+>Click: Create target group (lower right)
+```
+
+## Load Balancer
+
+```text
+>Click: Load Balancers (from EC2 Dashboard)
+>Click: Create load balancer (upper right)
+Load balancer types: Application Load Balancer
+Load balancer name: mixtapestudy-1
+Scheme: Internet-facing
+Load balancer IP address type: IPv4
+Network mapping - VPC: default
+Availability Zones: Select all (no reason not to)
+Subnet: [same as my ec2 instance]
+Security groups: Create a new one (for Internet Access)
+    Security group name: mixtapestudy-alb-1
+    Description: Allow internet access for mixtapestudy
+    VPC: default
+Listeners and routing:
+    HTTP 80; Forward to: mixtapestudy-1 (target group from above)
+    HTTP 443; Forward to: mixtapestudy-1
+Security category: All security policies
+Policy name: ELBSecurityPolicy-TLS13-1-2-2021-06 (recommended) (default)
+Default SSL/TLS server certificate
+    Certificate source: From ACM
+    Certificate: Request a new ACM Certificate for mixtapestudy.com and beta.mixtapestudy.com
+    >Added CNAMEs to verify through Route 53
+```
+
+# Route 53
+
+```text
+Route 53 > Hosted Zones > mixtapestudy.com > Create record
+Record name: beta (.mixtapestudy.com)
+Record type: A
+Alias: true
+Route traffic to: Alias to Application and Classic Load Balancer > US West 2 > Load balancer from above
+```
