@@ -54,7 +54,7 @@ healthcheck:
 	./ansible/.venv/bin/ansible-vault create .priv/vault
 
 .PHONY: push
-push: lint .priv/vault
+push: lint validate .priv/vault
 	./ansible/.venv/bin/ansible-playbook \
 		--ask-vault-password \
 		--inventory .priv/inventory.ini \
