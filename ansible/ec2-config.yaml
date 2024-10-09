@@ -6,7 +6,7 @@
     # This path needs to be relative to the playbook, not the command
     - ../.priv/vault
   vars:
-    mixtape_version: 1.0.4
+    mixtape_version: 1.0.5
   tasks:
     - name: Ping to make sure they're out there
       ansible.builtin.ping:
@@ -59,6 +59,14 @@
         groups: docker
         create_home: true
         home: /opt/mixtapestudy
+
+    - name: Create directory for logs
+      ansible.builtin.file:
+        path: /opt/mixtapestudy/log
+        owner: mixtapestudy
+        group: mixtapestudy
+        state: directory
+        mode: '0750'
 
     - name: Copy docker-compose
       ansible.builtin.copy:
