@@ -6,7 +6,7 @@
     # This path needs to be relative to the playbook, not the command
     - ../.priv/vault
   vars:
-    mixtape_version: 1.0.8
+    mixtape_version: 1.0.9
   tasks:
     - name: Ping to make sure they're out there
       ansible.builtin.ping:
