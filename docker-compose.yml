@@ -30,7 +30,7 @@ services:
     ports:
       - "8000:8000"
     environment:
-      OAUTH_REDIRECT_BASE_URL: "https://beta.mixtapestudy.com"
+      OAUTH_REDIRECT_BASE_URL: "https://mixtapestudy.com"
       # Set these in a .env file
       SPOTIFY_CLIENT_SECRET: "${SPOTIFY_CLIENT_SECRET}"
       SPOTIFY_CLIENT_ID: "${SPOTIFY_CLIENT_ID}"
